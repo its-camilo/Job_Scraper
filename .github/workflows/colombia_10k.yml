@@ -109,7 +109,10 @@ jobs:
         run: |
           git config user.name  "${{ github.actor }}"
           git config user.email "${{ github.actor }}@users.noreply.github.com"
-          git add -f output/linkedin_jobs.json output/linkedin_jobs.md output/linkedin_jobs.html output/all_jobs.json
+          for f in output/linkedin_jobs.json output/linkedin_jobs.md output/linkedin_jobs.html output/all_jobs.json; do
+            [ -e "$f" ] || continue
+            git add -f "$f"
+          done
           git diff --cached --quiet || git commit -m "chore: colombia 10k linkedin corpus [$(date -u '+%Y-%m-%d %H:%MZ')]"
           git pull --rebase -X theirs origin main
           git push
@@ -140,12 +143,36 @@ jobs:
           git reset --hard origin/main
       - name: Scrape Indeed (last 60 days)
         run: python -u scrape_jobs.py --indeed-backfill
+      - name: Record workflow run
+        run: |
+          python - <<'EOF'
+          import json
+          import os
+          from datetime import datetime, timezone
+
+          with open("output/indeed_jobs.json", encoding="utf-8") as f:
+              data = json.load(f)
+
+          entry = {
+              "workflow": "colombia-10k-indeed",
+              "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+              "job_count": int(data.get("total", 0)),
+              "run_id": os.environ.get("GITHUB_RUN_ID", ""),
+              "run_attempt": os.environ.get("GITHUB_RUN_ATTEMPT", ""),
+          }
+
+          with open("output/workflow_runs.jsonl", "a", encoding="utf-8") as f:
+              f.write(json.dumps(entry, sort_keys=True) + "\n")
+          EOF
       - name: Commit Indeed corpus
         if: vars.ENABLE_DATA_COMMITS == 'true'
         run: |
           git config user.name  "${{ github.actor }}"
           git config user.email "${{ github.actor }}@users.noreply.github.com"
-          git add -f output/indeed_jobs.json output/indeed_jobs.md output/indeed_jobs.html output/workflow_runs.jsonl output/all_jobs.json output/notified.json
+          for f in output/indeed_jobs.json output/indeed_jobs.md output/indeed_jobs.html output/workflow_runs.jsonl output/all_jobs.json output/notified.json; do
+            [ -e "$f" ] || continue
+            git add -f "$f"
+          done
           git diff --cached --quiet || git commit -m "chore: colombia 10k indeed corpus [$(date -u '+%Y-%m-%d %H:%MZ')]"
           git pull --rebase -X theirs origin main
           git push
