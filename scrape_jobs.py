@@ -936,6 +936,8 @@ def _enrich_linkedin_postings(jobs: list) -> tuple[int, int]:
     Returns (salary_filled, description_filled)."""
     salary_filled = desc_filled = fetched = 0
     failed: list[dict] = []
+    total = sum(1 for j in jobs if j.get("ats") == "LinkedIn"
+                and not (j.get("salary") and j.get("description")))
     for job in jobs:
         if job.get("ats") != "LinkedIn":
             continue
@@ -946,6 +948,11 @@ def _enrich_linkedin_postings(jobs: list) -> tuple[int, int]:
             continue
         time.sleep(LINKEDIN_REQUEST_DELAY + random.uniform(0, 2))
         fetched += 1
+        if fetched % 25 == 0 or fetched == total:
+            print(f"  📝 Enriching descriptions: {fetched}/{total} "
+                  f"(+{desc_filled} with text so far)"
+                  f"{' [RATE-LIMITED — slowing down]' if _RATE_LIMITED else ''}",
+                  flush=True)
         try:
             sal, desc = _linkedin_posting_details(m.group(1))
         except (URLError, TimeoutError, OSError):
