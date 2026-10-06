@@ -40,13 +40,13 @@ jobs:
         run: |
           LIMIT="${{ github.event.inputs.terms_limit }}"
           python - <<EOF >> "$GITHUB_OUTPUT"
-          import json
+          import json, sys
           with open("config.json", encoding="utf-8") as f:
               terms = json.load(f)["search_terms"]["linkedin"]
           limit = int("$LIMIT" or 14)
           terms = terms[:limit]
           print(f"matrix={json.dumps({'term': terms})}")
-          print(f"Selected {len(terms)} terms")
+          print(f"Selected {len(terms)} terms", file=sys.stderr)
           EOF
 
   linkedin-fanout:
