@@ -1,0 +1,151 @@
+name: Colombia 10k Corpus (LinkedIn + Indeed)
+
+# One-shot corpus builder for the Colombia labor-market study
+# (Economia / Administracion / Contaduria, last 60 days, with descriptions).
+#
+# Flow:
+#   1. emit-matrix  — reads search_terms.linkedin from config.json
+#   2. fanout       — one runner per term (max-parallel 3 to avoid LinkedIn 429s);
+#                     each runs --linkedin-backfill-term (all 8 geos, with JD enrichment)
+#   3. merge        — downloads all term artifacts, runs --linkedin-merge-backfill, commits
+#   4. indeed       — runs --indeed-backfill (60d, 500 rows/query), commits
+#
+# Launch: Actions → "Colombia 10k Corpus" → Run workflow.
+# For a smoke test first: set terms_limit=2.
+
+on:
+  workflow_dispatch:
+    inputs:
+      terms_limit:
+        description: "Max LinkedIn terms to run (14 = all; use 2 for smoke test)"
+        required: false
+        type: number
+        default: 14
+
+jobs:
+  emit-matrix:
+    name: Emit term matrix
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      matrix: ${{ steps.emit.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Emit term matrix from config.json
+        id: emit
+        run: |
+          LIMIT="${{ github.event.inputs.terms_limit }}"
+          python - <<EOF >> "$GITHUB_OUTPUT"
+          import json
+          with open("config.json", encoding="utf-8") as f:
+              terms = json.load(f)["search_terms"]["linkedin"]
+          limit = int("$LIMIT" or 14)
+          terms = terms[:limit]
+          print(f"matrix={json.dumps({'term': terms})}")
+          print(f"Selected {len(terms)} terms")
+          EOF
+
+  linkedin-fanout:
+    name: LinkedIn — ${{ matrix.term }}
+    needs: emit-matrix
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix: ${{ fromJson(needs.emit-matrix.outputs.matrix) }}
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Scrape term (all geos + descriptions)
+        env:
+          TERM: ${{ matrix.term }}
+        run: python -u scrape_jobs.py --linkedin-backfill-term "$TERM"
+      - name: Upload term results
+        uses: actions/upload-artifact@v4
+        with:
+          name: linkedin-term-${{ strategy.job-index }}
+          path: output/linkedin_backfill_*.json
+          retention-days: 2
+
+  linkedin-merge:
+    name: Merge LinkedIn + commit
+    needs: linkedin-fanout
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    concurrency:
+      group: job-scraper-commit-push
+      cancel-in-progress: false
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Download all term artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: linkedin-term-*
+          merge-multiple: true
+          path: output/
+      - name: Sync to latest origin/main before merge
+        run: |
+          git fetch origin main
+          git checkout main
+          git reset --hard origin/main
+      - name: Merge term results
+        run: python -u scrape_jobs.py --linkedin-merge-backfill
+      - name: Commit LinkedIn corpus
+        if: vars.ENABLE_DATA_COMMITS == 'true'
+        run: |
+          git config user.name  "${{ github.actor }}"
+          git config user.email "${{ github.actor }}@users.noreply.github.com"
+          git add -f output/linkedin_jobs.json output/linkedin_jobs.md output/linkedin_jobs.html output/all_jobs.json
+          git diff --cached --quiet || git commit -m "chore: colombia 10k linkedin corpus [$(date -u '+%Y-%m-%d %H:%MZ')]"
+          git pull --rebase -X theirs origin main
+          git push
+
+  indeed-backfill:
+    name: Indeed backfill (60d) + commit
+    needs: linkedin-merge
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    concurrency:
+      group: job-scraper-commit-push
+      cancel-in-progress: false
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: requirements.txt
+      - name: Install JobSpy deps
+        run: pip install -r requirements.txt
+      - name: Sync to latest origin/main
+        run: |
+          git fetch origin main
+          git checkout main
+          git reset --hard origin/main
+      - name: Scrape Indeed (last 60 days)
+        run: python -u scrape_jobs.py --indeed-backfill
+      - name: Commit Indeed corpus
+        if: vars.ENABLE_DATA_COMMITS == 'true'
+        run: |
+          git config user.name  "${{ github.actor }}"
+          git config user.email "${{ github.actor }}@users.noreply.github.com"
+          git add -f output/indeed_jobs.json output/indeed_jobs.md output/indeed_jobs.html output/workflow_runs.jsonl output/all_jobs.json output/notified.json
+          git diff --cached --quiet || git commit -m "chore: colombia 10k indeed corpus [$(date -u '+%Y-%m-%d %H:%MZ')]"
+          git pull --rebase -X theirs origin main
+          git push

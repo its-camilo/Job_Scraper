@@ -130,7 +130,13 @@ FRESH_JOB_LOOKBACK = timedelta(hours=24)
 
 # Titles containing any excluded term are dropped (config.json → keywords.exclude).
 # Single tokens are word-bounded; multi-word phrases match as substrings.
+# Empty list → never-match pattern (i.e. NO filtering), because re.compile("")
+# would match every string and wrongly drop/keep everything.
+_NEVER_MATCH_RE = re.compile(r"(?!)")
+
 def _build_title_re(terms: list) -> re.Pattern:
+    if not terms:
+        return _NEVER_MATCH_RE
     return re.compile(
         "|".join(re.escape(t) if (" " in t or "&" in t) else rf"\b{re.escape(t)}\b" for t in terms),
         re.IGNORECASE,
@@ -1036,7 +1042,8 @@ def scrape_linkedin_priority() -> list:
 
 INDEED_LOOKBACK_HOURS = 24  # Indeed posting dates are ~day-resolution, so a 1h window
 # returns almost nothing; the hourly watcher's cross-run dedupe trims the overlap.
-INDEED_BACKFILL_DAYS = 50  # one-time historical backfill window
+INDEED_BACKFILL_DAYS = 60  # one-time historical backfill window (Colombia 10k corpus: 2 months)
+INDEED_BACKFILL_RESULTS = 500  # rows per query on backfill (default 50 is too small for corpus building)
 
 # Indeed geographies. country sets the Indeed domain (USA → indeed.com,
 # Australia → au.indeed.com). Searched per term, so we use a tighter term list
@@ -1245,7 +1252,7 @@ def _scrape_jobspy_board(*, label: str, site_name: str, geos: list, terms: list,
     return jobs
 
 
-def scrape_indeed_recent(hours_old: int | None = None) -> list:
+def scrape_indeed_recent(hours_old: int | None = None, results_wanted: int = 50) -> list:
     """Indeed roles posted in the last hours_old hours (default INDEED_LOOKBACK_HOURS)."""
     h = hours_old if hours_old is not None else INDEED_LOOKBACK_HOURS
     return _scrape_jobspy_board(
@@ -1255,6 +1262,7 @@ def scrape_indeed_recent(hours_old: int | None = None) -> list:
         terms=INDEED_SEARCH_TERMS,
         hours_old=h,
         prev_basename="indeed_jobs",
+        results_wanted=results_wanted,
     )
 
 
@@ -2788,11 +2796,12 @@ def _load_prev_ids(json_path: str) -> set[str]:
     return ids
 
 
-ALL_JOBS_PRUNE_DAYS = 30
+ALL_JOBS_PRUNE_DAYS = 65
 # LinkedIn's guest API reliably supports ~30 days via f_TPR; use this for the
 # one-time historical backfill (--linkedin-backfill) so new users get a full
 # picture without running hourly for weeks.
-LINKEDIN_BACKFILL_DAYS = 30
+# Colombia 10k corpus: 60-day window so the 2-month backfill is not pruned.
+LINKEDIN_BACKFILL_DAYS = 60
 
 
 def _merge_into_all_jobs(new_jobs: list) -> int:
@@ -3215,7 +3224,8 @@ if __name__ == "__main__":
 
     if "--indeed-backfill" in sys.argv:
         print(f"🔁 Indeed backfill (last {INDEED_BACKFILL_DAYS} days)…")
-        save_indeed_results(scrape_indeed_recent(hours_old=INDEED_BACKFILL_DAYS * 24))
+        save_indeed_results(scrape_indeed_recent(hours_old=INDEED_BACKFILL_DAYS * 24,
+                                                 results_wanted=INDEED_BACKFILL_RESULTS))
         sys.exit(0)
 
     if "--glassdoor-only" in sys.argv:

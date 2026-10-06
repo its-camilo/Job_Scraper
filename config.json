@@ -1,0 +1,149 @@
+{
+  "_README": "CORPUS 10k - Economia / Administracion de Empresas / Contaduria Publica - Colombia (Bogota primero). Unidad de Informatica. Sin filtro de skills: include/exclude vacios = pasa todo, solo filtra ubicacion.",
+  "profile": {
+    "title": "Mercado laboral Econ/Admin/Contaduria - Colombia",
+    "subtitle": "Bogota y Cundinamarca · Medellin · Cali · Barranquilla · Bucaramanga",
+    "emoji": "📊"
+  },
+  "keywords": {
+    "_comment": "VACIO A PROPOSITO: sin filtro de skills para no limitar el espacio de busqueda. El codigo trata include vacio como match-all y exclude vacio como no-excluir (ver _build_title_re). Solo aplica el filtro de ubicacion.",
+    "include": [],
+    "exclude": [],
+    "fuzzy_seniority": [],
+    "fuzzy_domain": [],
+    "fuzzy_exclude": []
+  },
+  "search_terms": {
+    "_comment": "Queries amplias por carrera con variantes. LinkedIn e Indeed unicos activos.",
+    "linkedin": [
+      "contador",
+      "auxiliar contable",
+      "analista contable",
+      "auditor",
+      "revisor fiscal",
+      "impuestos",
+      "tesoreria",
+      "nomina",
+      "administrador de empresas",
+      "administrador",
+      "asistente administrativo",
+      "gestion administrativa",
+      "economista",
+      "analista financiero"
+    ],
+    "indeed": [
+      "contador",
+      "auxiliar contable",
+      "analista contable",
+      "auditor",
+      "revisor fiscal",
+      "impuestos",
+      "tesoreria",
+      "nomina",
+      "administrador de empresas",
+      "administrador",
+      "asistente administrativo",
+      "gestion administrativa",
+      "economista",
+      "analista financiero"
+    ],
+    "glassdoor": [],
+    "ziprecruiter": [],
+    "google_jobs": [],
+    "hiring_cafe": [],
+    "calcareers": [],
+    "usajobs": [],
+    "governmentjobs": [],
+    "workday": []
+  },
+  "locations": {
+    "_comment": "Bogota primero (distrito + alrededores Cundinamarca) y luego las 4 ciudades. geoId vacio = LinkedIn resuelve el texto.",
+    "linkedin": [
+      { "name": "Bogota DC", "location": "Bogota, Colombia", "geoId": "" },
+      { "name": "Soacha", "location": "Soacha, Cundinamarca, Colombia", "geoId": "" },
+      { "name": "Chia", "location": "Chia, Cundinamarca, Colombia", "geoId": "" },
+      { "name": "Mosquera", "location": "Mosquera, Cundinamarca, Colombia", "geoId": "" },
+      { "name": "Medellin", "location": "Medellin, Antioquia, Colombia", "geoId": "" },
+      { "name": "Cali", "location": "Cali, Valle del Cauca, Colombia", "geoId": "" },
+      { "name": "Barranquilla", "location": "Barranquilla, Atlantico, Colombia", "geoId": "" },
+      { "name": "Bucaramanga", "location": "Bucaramanga, Santander, Colombia", "geoId": "" }
+    ],
+    "indeed": [
+      { "location": "Bogota", "country": "Colombia" },
+      { "location": "Soacha", "country": "Colombia" },
+      { "location": "Chia", "country": "Colombia" },
+      { "location": "Medellin", "country": "Colombia" },
+      { "location": "Cali", "country": "Colombia" },
+      { "location": "Barranquilla", "country": "Colombia" },
+      { "location": "Bucaramanga", "country": "Colombia" }
+    ],
+    "glassdoor": [],
+    "ziprecruiter": [],
+    "google_jobs": [],
+    "hiring_cafe": [
+      { "location": "United States" }
+    ],
+    "linkedin_partitions": {
+      "states": [],
+      "high_volume": {
+        "locations": [],
+        "day_slices": true
+      }
+    }
+  },
+  "location_filter": {
+    "_comment": "Acepta Bogota+Cundinamarca, Medellin/Antioquia, Cali/Valle, Barranquilla/Atlantico, Bucaramanga/Santander y remoto/hibrido en Colombia.",
+    "terms": [
+      "bogota", "bogotá", "bogota d.c.", "cundinamarca",
+      "soacha", "chia", "chía", "mosquera", "funza", "madrid",
+      "cajica", "cajicá", "zipaquira", "zipaquirá", "facatativa", "facatativá",
+      "medellin", "medellín", "antioquia", "envigado", "bello", "itagui", "itagüí",
+      "cali", "valle del cauca", "palmira",
+      "barranquilla", "atlantico", "atlántico", "soledad",
+      "bucaramanga", "santander", "floridablanca", "giron", "girón", "piedecuesta",
+      "colombia", ", co",
+      "remoto", "remota", "remote", "hibrido", "híbrido", "hybrid"
+    ]
+  },
+  "google_jobs": {
+    "queries": [],
+    "serpapi_api_key": "",
+    "oxylabs_username": "",
+    "oxylabs_password": ""
+  },
+  "jobspy": {
+    "proxies": [],
+    "user_agent": ""
+  },
+  "hiring_cafe": {
+    "max_pages": 1
+  },
+  "employers": {
+    "priority": [],
+    "exclude": []
+  },
+  "priority_topics": {
+    "_comment": "Flags por carrera para el dashboard.",
+    "terms": [
+      ["contaduria", "contador|contable|auditor|revisor fiscal|impuesto|nomina|nómina|tesorer|niif|siigo|helisa"],
+      ["administracion", "administrador|administrativ|gesti[oó]n administrativa|asistente administrativo|oficina"],
+      ["economia", "economista|econometr|analista financiero|planeaci[oó]n"]
+    ]
+  },
+  "role_categories": {
+    "_comment": "Buckets del filtro Role aplicados de arriba hacia abajo.",
+    "terms": [
+      ["Contaduria", "contador|contable|auditor|revisor fiscal|impuesto|n[oó]mina|tesorer|niif|siigo|helisa"],
+      ["Economia", "economista|econometr|analista financiero"],
+      ["Administracion", "administrador|administrativ|gesti[oó]n|asistente|oficina|operaciones|recursos humanos"],
+      ["Finanzas transversal", "financ|tesorer|cr[eé]dito|cartera|facturaci[oó]n"]
+    ]
+  },
+  "notify": {
+    "min_fit": 75,
+    "weekly_digest": {
+      "enabled": false,
+      "days": 7
+    }
+  }
+}
